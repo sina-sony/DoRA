@@ -642,15 +642,19 @@ class Trainer(TrainerBase):
 
     def caption_evaluate(self, loader, dump_path=None):
         results = self.caption_predict(loader, dump_path)
-        results = self.collect_results_gpu([results], len(loader.dataset))
+        if self.args.distributed:
+            results = self.collect_results_gpu([results], len(loader.dataset))
 
         if self.verbose:
-            results_dict = {}
-            for result in results:
-                for k, v in result.items():
-                    if k not in results_dict:
-                        results_dict[k] = []
-                    results_dict[k].extend(v)
+            if self.args.distributed:
+                results_dict = {}
+                for result in results:
+                    for k, v in result.items():
+                        if k not in results_dict:
+                            results_dict[k] = []
+                        results_dict[k].extend(v)
+            else:
+                results_dict = results
             
             evaluator = loader.evaluator
             predictions = results_dict['predictions']
