@@ -1,4 +1,4 @@
-torch>=1.6.0
+torch==2.0.1
 transformers==4.2.1
 sentencepiece
 h5py
