@@ -573,11 +573,12 @@ class Trainer(TrainerBase):
                         {"question_id": ques, "answer": pred}
                     )
 
+        if self.args.distributed:
+            quesid2ans = self.collect_results_gpu(quesid2ans, len(loader.dataset))
         return quesid2ans
 
     def qa_evaluate(self, loader, dump_path=None):
         quesid2ans = self.qa_predict(loader, dump_path)
-        quesid2ans = self.collect_results_gpu(quesid2ans, len(loader.dataset))
         
         if self.verbose:
             evaluator = loader.evaluator
@@ -630,6 +631,14 @@ class Trainer(TrainerBase):
                 if 'question_ids' in batch:
                     clip_ids.extend(batch['question_ids'])
 
+            if self.args.distributed:
+                size = len(loader.dataset)
+                predictions = self.collect_results_gpu(predictions, size)
+                targets = self.collect_results_gpu(targets, size)
+                tss = self.collect_results_gpu(tss, size)
+                video_ids = self.collect_results_gpu(video_ids, size)
+                clip_ids = self.collect_results_gpu(clip_ids, size)
+
             results = {
                 'predictions': predictions,
                 'targets': targets,
@@ -642,24 +651,12 @@ class Trainer(TrainerBase):
 
     def caption_evaluate(self, loader, dump_path=None):
         results = self.caption_predict(loader, dump_path)
-        if self.args.distributed:
-            results = self.collect_results_gpu([results], len(loader.dataset))
-
+        
         if self.verbose:
-            if self.args.distributed:
-                results_dict = {}
-                for result in results:
-                    for k, v in result.items():
-                        if k not in results_dict:
-                            results_dict[k] = []
-                        results_dict[k].extend(v)
-            else:
-                results_dict = results
-            
             evaluator = loader.evaluator
-            predictions = results_dict['predictions']
+            predictions = results['predictions']
             if dump_path is None:
-                targets = results_dict['targets']
+                targets = results['targets']
 
                 eval_results = evaluator.evaluate(predictions, targets)
                 return eval_results
