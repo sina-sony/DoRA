@@ -559,7 +559,7 @@ class Trainer(TrainerBase):
         self.model.eval()
         with torch.no_grad():
             quesid2ans = []
-            for i, batch in enumerate(tqdm(loader, ncols=150)):
+            for i, batch in enumerate(tqdm(loader, ncols=150, disable=not self.verbose)):
                 if self.args.distributed:
                     results = self.model.module.test_step(batch)
                 else:
@@ -606,7 +606,7 @@ class Trainer(TrainerBase):
             gen_kwargs['num_beams'] = self.args.num_beams
             gen_kwargs['max_length'] = self.args.gen_max_length
 
-            for i, batch in enumerate(tqdm(loader, ncols=120, desc="Prediction")):
+            for i, batch in enumerate(tqdm(loader, ncols=120, desc="Prediction", disable=not self.verbose)):
 
                 if self.args.distributed:
                     results = self.model.module.test_step(
